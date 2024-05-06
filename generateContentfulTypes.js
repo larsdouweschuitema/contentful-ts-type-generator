@@ -7,11 +7,14 @@ const fs = require('fs')
 const path = require('path')
 const Rx = require('rx')
 
-const toInterfaceName = (s, prefix = '') => {
-  s.replace(/-[[:alnum:]]/gm, (match) => { console.log('Match', match); return match.slice(1).toUpperCase()})
-  return prefix + s.charAt(0).toUpperCase() + s.slice(1)
-    .replace(/-[A-Za-z0-9_]/g, (match) => match.slice(1).toUpperCase())
-}
+const toPascalCase = (s, prefix = '') => {
+    s.replace(/-[[:alnum:]]/gm, (match) => { console.log('Match', match); return match.slice(1).toUpperCase()})
+    return prefix + s.charAt(0).toUpperCase() + s.slice(1)
+      .replace(/-[A-Za-z0-9_]/g, (match) => match.slice(1).toUpperCase())
+  }
+
+const getConstantName = (id, prefix) => `${toPascalCase(id, prefix)}Name`;
+const getInterfaceName = (id, prefix) => `I${toPascalCase(id, prefix)}`;
 
 const relativePath = path.normalize(path.relative(process.cwd(), __dirname))
 
@@ -22,9 +25,9 @@ const formatArray = (isArray, typeName) => isArray ? `ReadonlyArray<${typeName}>
 const concatLinkTypes = (prefix, linkContentType) =>
   Array.isArray(linkContentType)
     ? linkContentType.map(type => {
-        return toInterfaceName(type, prefix)
+        return toPascalCase(type, prefix)
       }).join('|')
-    : toInterfaceName(linkContentType, prefix)
+    : toPascalCase(linkContentType, prefix)
 
 const formatType = (field, prefix = '', isArray = false) => {
   const type = field.type
@@ -80,9 +83,9 @@ const writeTypesToFile = (types, outputFilePath, prefix, ignoredFields = [] ) =>
   var stream = fs.createWriteStream(outputFilePath)
   stream.once('open', () => {
     stream.write(`import { Entry, Asset } from 'contentful'\n`)
-    items.sort((a, b) => toInterfaceName(a.sys.id, prefix).localeCompare(toInterfaceName(b.sys.id, prefix))).forEach(item => {
-        stream.write(`export const ${toInterfaceName(item.sys.id, prefix)} = '${item.sys.id}'\n`)
-        stream.write(`export interface ${toInterfaceName(item.sys.id, prefix)} {\n`)
+    items.sort((a, b) => toPascalCase(a.sys.id, prefix).localeCompare(toPascalCase(b.sys.id, prefix))).forEach(item => {
+        stream.write(`export const ${getConstantName(item.sys.id, prefix)} = '${item.sys.id}'\n`)
+        stream.write(`export interface ${getInterfaceName(item.sys.id, prefix)} {\n`)
         stream.write(`  //${item.name}\n`)
         stream.write(`  /* ${item.description} */\n`)
         item.fields.sort((a, b) => a.id.localeCompare(b.id)).forEach(field => {
